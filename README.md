@@ -1,4 +1,4 @@
-# uc_disable_countries - Drupal 7 Ubercart
+# uc_disable_countries - Disable Shipping/Billing Countries for Ubercart
 
 Gives site builders the ability to disable countries in the "Country" dropdown on the checkout page. Countries in the billing and shipping pane can be disabled separately (to allow someone to buy a product from a UK address without shipping there for example).
 
@@ -10,7 +10,7 @@ Requires Drupal 7, Ubercart, and its dependencies
 
 ### Installing
 
-Install like a standard contributed module: (http://drupal.org/node/70151)
+Install like a standard contributed module: (https://www.drupal.org/docs/7/extend/installing-modules)
 
 ## Configuration
 
