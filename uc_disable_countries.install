@@ -1,0 +1,14 @@
+<?php
+/**
+ * @file
+ * Install, update and uninstall functions for the uc_disable_countries module.
+ */
+
+/**
+ * Implements hook_uninstall().
+ */
+function uc_disable_countries_uninstall() 
+{
+	variable_del('uc_disable_countries_delivery');
+	variable_del('uc_disable_countries_billing');
+}

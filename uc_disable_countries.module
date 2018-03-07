@@ -1,0 +1,157 @@
+<?php
+/**
+ * @file
+ * Allows disabling of countries in the dropdown on the checkout
+ * page.
+ */
+
+/**
+ * Implements hook_menu().
+ */
+function uc_disable_countries_menu() {
+  $items = array();
+
+  $items['admin/store/settings/disablecountries'] = array(
+    'title' => 'Disable Countries',
+    'description' => 'Disable countries on checkout page.',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('uc_disable_countries_settings_form', 'delivery'),
+    'access arguments' => array('administer store'),
+    'type' => MENU_NORMAL_ITEM,
+    'file' => 'uc_disable_countries.admin.inc',
+  );
+  $items['admin/store/settings/disablecountries/delivery'] = array(
+    'title' => 'delivery',
+    'description' => 'Disable countries in delivery pane on checkout page.',
+    'access arguments' => array('administer store'),
+    'weight' => -10,
+    'type' => MENU_DEFAULT_LOCAL_TASK,
+    'file' => 'uc_disable_countries.admin.inc',
+  );
+  $items['admin/store/settings/disablecountries/billing'] = array(
+    'title' => 'Billing',
+    'description' => 'Disable countries in billing pane on checkout page.',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('uc_disable_countries_settings_form', 'billing'),
+    'access arguments' => array('administer store'),
+    'weight' => -5,
+    'type' => MENU_LOCAL_TASK,
+    'file' => 'uc_disable_countries.admin.inc',
+  );
+
+  return $items;
+}
+
+/**
+ * Implements hook_element_info_alter().
+ */
+function uc_disable_countries_element_info_alter(&$type) {
+  $type['uc_address']['#process'][] = 'uc_disable_countries_disable_countries';
+  $type['uc_address']['#element_validate'][] = 'uc_disable_countries_disable_countries_validate';
+}
+
+/**
+ * Hide disabled zones in delivery/billing zone selections.
+ */
+function uc_disable_countries_disable_countries($element, &$form_state) 
+{
+	//$key = $element['#key_prefix'] ? ($element['#key_prefix'] . '_') : '';
+	if ($element['#key_prefix'])
+	{
+		$key = $element['#key_prefix'] . '_';
+	}
+	else
+	{
+		$key = '';
+	}
+	
+	$disabled_countries = variable_get('uc_disable_countries_' . $element['#key_prefix']);
+	$country = $element[$key . 'country']['#default_value'];
+
+	// Exit early if no disabled countries for this $key.
+	if (count($disabled_countries) == 0 || !isset($disabled_countries)) 
+	{
+		return $element;
+	}
+
+	foreach($element[$key . 'country']['#options'] as $country_id => $country_name) 
+	{
+		if (in_array($country_id, $disabled_countries)) 
+		{
+			unset($element[$key . 'country']['#options'][$country_id]);
+		}
+	}
+
+	return $element;
+}
+
+/**
+ * Ensure disabled zones in delivery/billing weren't selected by mistake
+ * or other (nefarious) means.
+ */
+function uc_disable_countries_disable_countries_validate($element, &$form_state) 
+{
+	if ($element['#key_prefix'])
+	{
+		$key = $element['#key_prefix'] . '_';
+	}
+	else
+	{
+		$key = '';
+	}
+	
+	$disabled_countries = variable_get('uc_disable_countries_' . $element['#key_prefix']);
+	$country = $element[$key . 'country']['#value'];
+
+	// Exit early if no disabled countries for this $key
+	if (count($disabled_countries) == 0 || !isset($disabled_countries)) 
+	{
+		return;
+	}
+
+	if (in_array($element[$key . 'country']['#value'], $disabled_countries[$country])) 
+	{
+		form_error($element, ucwords($element['#key_prefix']) . ' to that ' . $element[$key . 'country']['#title'] . ' is not allowed.');
+	}
+}
+
+/**
+ * Implements hook_form_alter().
+ */
+function uc_disable_countries_form_alter(&$form, &$form_state, $form_id) 
+{
+	// Figure out how 'my billing info is the same' works
+	return;
+	dpm('test');
+	if ($form_id == 'uc_cart_checkout_form') {
+	// Override ubercart copy address functions.
+	drupal_add_js(drupal_get_path('module', 'uc_disable_countries') . '/uc_disable_countries.js');
+
+	if (isset($form['panes']['delivery']['copy_address'])) {
+	unset($form['panes']['delivery']['copy_address']['#attributes']['onclick']);
+	}
+
+	if (isset($form['panes']['billing']['copy_address'])) {
+	unset($form['panes']['billing']['copy_address']['#attributes']['onclick']);
+	}
+	}
+}
+
+/**
+ * Helper function to return an array of countries.
+ */
+function _uc_disable_countries_get_country_list() 
+{
+	// get list of countries
+	$results = db_query("SELECT * FROM {uc_countries} WHERE version > 0 ORDER BY country_name");
+
+	$countries = array();
+	
+	// associative array, country_id as index => country name as value
+	foreach ($results as $result) 
+	{
+		$countries[$result->country_id] = $result->country_name;
+	}
+
+	return $countries;
+}
